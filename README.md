@@ -69,6 +69,12 @@ openstack image show $image_uuid
 
 The Packer build process is logged in separate log for each build, found in the `LOG_DIR`. Logs are stored for each build process - this is done by using Unix timestamps. If multiple builds are started sequentially (e.g. through a script), and they've started in the same second (therefore the Unix timestamp is the same), this can make logs confusing because multiple builds will be contained in one log file. If starting builds through a script, leave a second or two gap between the start of each process.
 
+## Rally Integration
+
+A new feature added to Packuilon is to make use of OpenStack Rally to test the images that Packer produces. As of writing, this all works and the test executed is a simple boot up and delete of a couple of VMs using the image just produced. With a little more time, a more complex test should be written, making use of a Rally plugin called `VMTasks.boot_runcommand_delete`. This allows Rally to inject a script into the VM in question. This would be useful as this script could contain tests which are currently done manually, but can quite easily be automated. For anyone looking to do this, plans of Bash commands to test images have been given to Alex. 
+
+All this Rally work is contained in `etc/packer-utils/image-testing-rally`. There's a mixture of Python files and Bash scripts. The Bash scripts are used to start a Rally task and get the results (put into a json file) from the task. This json is put into Python and is used to make decisions regarding the quality of the image. The final yes/no decision of the image is logged using syslog. `rally_task_analysis.py` kicks off the Bash scripts using Subprocess.
+
 # Installation
 
 *this is mostly SCD specific*
@@ -115,4 +121,4 @@ Next is `template-map.json`. Appending the file using a line in the format as be
 "nubesvms-centos7x-x86_64": ["/etc/packer-utils/templates/nubesvms-centos7.json"]
 ```
 
-From the value used in `template-map.json`, create a file of the same name in the relevant directory. This file should be a version of (un)managed.json, whichever is relevant (i.e. is the personality for a managed or an unmanaged image?). This file is essentially a Packer build file with some blanks, that are filled in during rabbit2packer. Any errors here should appear in the logs so it's probably best to run Packuilon and see what comes from the logs and fix accordingly. The most probable things to be wrong are incorrect paths to files and UUIDs for OpenStack (networks and images). You can see the actual Packer build files (the ones without the blanks) in `/etc/packer-utils/build` once a build has been completed.
+From the value used in `template-map.json`, create a file of the same name in the relevant directory. This file should be a version of (un)managed.json, whichever is relevant (i.e. is the personality for a managed or an unmanaged image?). This file is essentially a Packer build file with some blanks, that are filled in during rabbit2packer. At this point, it's a good idea to restart the `rabbit2packer` systemctl service, just to make sure all updates to these files are seen. Any errors should appear in the logs so it's probably best to run Packuilon and see what comes from the logs and fix accordingly. The most probable things to be wrong are incorrect paths to files and UUIDs for OpenStack (networks and images). You can see the actual Packer build files (the ones without the blanks) in `/etc/packer-utils/build` once a build has been completed.
